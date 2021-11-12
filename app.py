@@ -1,51 +1,77 @@
+import pandas as pd
 import dash
 from dash import dcc
 from dash import html
+from dash.dependencies import Input, Output
 import plotly.express as px
-import pandas as pd
+import plotly.graph_objects as go
+
+import api_handler
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-colors = {
-    'background': '#111111',
-    'text': '#7FDBFF'
-}
+ah = api_handler.APIBMEHandler(market='IBEX')
 
-
-api_handler.get_ticker_master
-# assume you have a "long-form" data frame
-# see https://plotly.com/python/px-arguments/ for more options
-df = pd.DataFrame(get_close_data_ticker)
-
-fig = px.bar(df, x="Fruit", y="Amount", color="City", barmode="group")
-
-fig.update_layout(
-    plot_bgcolor=colors['background'],
-    paper_bgcolor=colors['background'],
-    font_color=colors['text']
-)
-
-app.layout = html.Div(style={'backgroundColor': '#111111'}, children=[
+app.layout = html.Div(children=[
     html.H1(
-        children='Hello Dash',
-        style={
-            'textAlign': 'center',
-            'color': colors['text']
-        }
+        children='MIAX Data Explorer 2',
     ),
-
-    html.Div(children='Dash: A web application framework for Python.', style={
-        'textAlign': 'center',
-        'color': colors['text']
-    }),
-
+    html.H5(
+        children='mIAx API',
+    ),
+    dcc.Dropdown(
+        id='markets',
+        options=[
+            {'label': 'IBEX', 'value': 'IBEX'},
+            {'label': 'DAX', 'value': 'DAX'},
+            {'label': 'EUROSTOXX', 'value': 'EUROSTOXX'}
+        ],
+        value='IBEX'
+    ),
+    dcc.Dropdown(
+        id='tickers',
+    ),
     dcc.Graph(
-        id='example-graph-2',
-        figure=fig
+        id='graph',
     )
 ])
 
+
+@app.callback(
+    Output('tickers', 'options'),
+    Input('markets', 'value'))
+def change_index(selected_index):
+    ah.market = selected_index
+    ticker_master = ah.get_ticker_master()
+    tcks = list(ticker_master.ticker)
+    dropdown_values = [{'label': tck, 'value': tck} for tck in tcks]
+    return dropdown_values
+
+
+@app.callback(
+    Output('tickers', 'value'),
+    Input('tickers', 'options'))
+def change_value_ticker(new_options):
+    return new_options[0]['value']
+
+
+@app.callback(
+    Output('graph', 'figure'),
+    Input('tickers', 'value'))
+def change_graph(ticker):
+    ticker_data = ah.get_data_ticker(ticker=ticker)
+    # fig = px.line(ticker_data)
+    fig = go.Figure(go.Candlestick(
+        x=ticker_data.index,
+        open=ticker_data['open'],
+        high=ticker_data['high'],
+        low=ticker_data['low'],
+        close=ticker_data['close']
+    ))
+    return fig
+
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(host="0.0.0.0", debug=False, port=8080)
+

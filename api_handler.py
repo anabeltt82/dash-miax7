@@ -38,5 +38,16 @@ class APIBMEHandler:
         tk_data = response.json()
         series_data = pd.read_json(tk_data, typ='series')
         return series_data
+
+    def get_data_ticker(self, ticker):
+        url = f'{self.url_base}/data/time_series'
+        params = {'market': self.market,
+                  'key': self.user_key,
+                  'ticker': ticker,
+                  'close': False}
+        response = requests.get(url, params)
+        tk_data = response.json()
+        df_data = pd.read_json(tk_data, typ='frame')
+        return df_data
     
    
