@@ -9,7 +9,8 @@ import numpy as np
 import utils
 
 
-
+get_ticker_master
+get_close_data_ticker
 
 def gen_alloc_data(ticker, alloc):
     return {'ticker': ticker,
